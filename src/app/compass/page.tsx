@@ -27,11 +27,11 @@ const Compass = ()=>{
         <div className="flex justify-center items-center relative">
           <motion.div
             animate={{ rotate: -rotation }}
-            transition={{
-              type: 'spring',
-              stiffness: 100,
-              damping: 10,
-            }}
+  transition={{
+    type: 'tween',
+    ease: 'linear',
+    duration: 0.15,
+  }}
             className="relative w-60 md:w-[300px] h-60 md:h-[300px] "
           >
             <Image
