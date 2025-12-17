@@ -7,11 +7,22 @@ import { useEffect, useState } from 'react'
 import {motion} from "framer-motion"
 import Image from 'next/image'
 const Compass = ()=>{
+    const normalize = (deg: number) => (deg + 360) % 360
     const [rotation, setRotation] = useState<number>(0)
     useEffect(() => {
     const handleOrientation = (event: DeviceOrientationEvent) => {
       if (event.alpha !== null) {
-        setRotation(event.alpha)
+        setRotation(prev => {
+  const current = normalize(prev)
+  const target = normalize(event.alpha!)
+
+  let diff = target - current
+
+  if (diff > 180) diff -= 360
+  if (diff < -180) diff += 360
+
+  return prev + diff * 0.15 // smoothing factor
+})
       }
     }
     window.addEventListener('deviceorientation', handleOrientation)
