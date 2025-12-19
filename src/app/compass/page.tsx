@@ -1,77 +1,70 @@
 'use client'
-import CompassOuter from '@/assets/CompassOuter.svg'
-import CompassInner from '@/assets/CompassInner.svg'
-import meccaIcon from "@/assets/Qaaba.png"
-import CenterLogo from '@/assets/CentreLogo.svg'
+
 import { useEffect, useState } from 'react'
-import {motion} from "framer-motion"
-import Image from 'next/image'
-const Compass = ()=>{
-    const normalize = (deg: number) => (deg + 360) % 360
-    const [rotation, setRotation] = useState<number>(0)
-    useEffect(() => {
+import { motion } from 'framer-motion'
+
+export default function Compass() {
+  const [heading, setHeading] = useState(0)
+  const [qiblahAngle, setQiblahAngle] = useState<number | null>(null)
+
+  /* ---------------- Device Orientation ---------------- */
+  useEffect(() => {
     const handleOrientation = (event: DeviceOrientationEvent) => {
       if (event.alpha !== null) {
-        setRotation(prev => {
-  const current = normalize(prev)
-  const target = normalize(event.alpha!)
-
-  let diff = target - current
-
-  if (diff > 180) diff -= 360
-  if (diff < -180) diff += 360
-
-  return prev + diff * 0.15 // smoothing factor
-})
+        setHeading(event.alpha)
       }
     }
+
+    window.addEventListener('deviceorientationabsolute', handleOrientation)
     window.addEventListener('deviceorientation', handleOrientation)
 
     return () => {
+      window.removeEventListener('deviceorientationabsolute', handleOrientation)
       window.removeEventListener('deviceorientation', handleOrientation)
     }
   }, [])
 
-    return(
-        <div className="flex flex-col h-full justify-evenly  mt-2 ">
-        {/* Compass */}
-        <div className="flex justify-center items-center relative">
-          <motion.div
-            animate={{ rotate: -rotation }}
-  transition={{
-    type: 'tween',
-    ease: 'linear',
-    duration: 0.15,
-  }}
-            className="relative w-60 md:w-[300px] h-60 md:h-[300px] "
-          >
-            <Image
-              src={CompassOuter}
-              alt="compass outer"
-              className="absolute top-1/2 left-1/2 w-64 md:w-76 h-64 md:h-76  -translate-x-1/2 -translate-y-1/2"
-            />
+  /* ---------------- Geolocation + Qiblah API ---------------- */
+  useEffect(() => {
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+      const { latitude, longitude } = pos.coords
 
-            <Image
-              src={meccaIcon}
-              alt="Qiblah"
-              className="absolute top-1/2 -left-6 -translate-y-1/2"
-            />
+      const res = await fetch(
+        `https://api.aladhan.com/v1/qibla/${latitude}/${longitude}`
+      )
+      const data = await res.json()
 
-            <Image
-              src={CompassInner}
-              alt="compass inner"
-              className="absolute top-1/2 left-1/2 w-40 md:w-44 h-40 md:h-44 -translate-x-1/2 -translate-y-1/2"
-            />
-          </motion.div>
-          <Image
-            src={CenterLogo}
-            alt="logo"
-            className="absolute top-1/2 left-1/2 w-20 md:w-24 h-20 md:h-24 -translate-x-1/2 -translate-y-1/2"
-          />
-        </div>
+      setQiblahAngle(data.data.direction)
+    })
+  }, [])
+
+  /* ---------------- Rotation Logic ---------------- */
+  const qiblahRotation =
+    qiblahAngle !== null ? qiblahAngle - heading : 0
+
+  return (
+    <div className="flex justify-center items-center h-screen bg-black">
+      <div className="relative w-64 h-64 rounded-full border-4 border-white flex items-center justify-center">
+
+        {/* 🧭 Compass */}
+        <motion.div
+          animate={{ rotate: -heading }}
+          transition={{ type: 'spring', stiffness: 120, damping: 20 }}
+          className="absolute w-full h-full flex items-center justify-center"
+        >
+          <span className="absolute top-2 text-white font-bold">N</span>
+        </motion.div>
+
+        {/* 🕋 Qiblah Pointer */}
+        <motion.div
+          animate={{ rotate: qiblahRotation }}
+          transition={{ type: 'spring', stiffness: 120, damping: 20 }}
+          className="absolute w-full h-full flex items-center justify-center"
+        >
+          <div className="w-1 h-24 bg-green-500 rounded-full" />
+        </motion.div>
 
       </div>
-    )
+    </div>
+  )
 }
-
-export default Compass;
